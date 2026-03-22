@@ -1,0 +1,9 @@
+# Application (proposal: single-command install + dependency scanning)
+flask>=3.0.0,<4
+flask-jwt-extended>=4.6.0,<5
+argon2-cffi>=23.1.0
+pycryptodome>=3.20.0
+flask-cors>=4.0.0,<6
+pytest>=8.0.0,<9
+prometheus-flask-exporter>=0.23.0
+cryptography

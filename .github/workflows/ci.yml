@@ -1,0 +1,48 @@
+# CI: dependency scan → static security (Bandit) → pytest → Docker image build.
+# Use GitHub Actions secrets for real JWT/AES in deploy; local/CI tests set env in test/conftest.py.
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  security-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1) Checkout repository
+      - uses: actions/checkout@v4
+
+      # 2) Python toolchain
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # 3) Application dependencies from requirements.txt
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      # 4) Security scanners (Bandit + pip-audit are installed here, not pinned in requirements.txt)
+      - name: Install security tooling
+        run: pip install bandit pip-audit
+
+      # 5) Dependency / supply-chain scan (addresses vulnerable libraries; similar intent to OWASP DC or Safety)
+      - name: Dependency scanning
+        run: pip-audit -r requirements.txt
+
+      # 6) Static analysis on the Flask codebase (hardcoded secrets, unsafe patterns, SQL issues)
+      - name: Security scanning (Bandit)
+        run: bandit -r hotel_backend -c pyproject.toml
+
+      # 7) Automated tests — must pass before image build
+      - name: Run tests
+        run: pytest
+
+      # 8) Container build verification
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        run: docker build .

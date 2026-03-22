@@ -1,0 +1,12 @@
+# Scrape the Flask app (prometheus-flask-exporter exposes /metrics).
+# Point Grafana at this Prometheus instance as a data source.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: hotel_api
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - host.docker.internal:5000

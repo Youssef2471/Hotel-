@@ -1,0 +1,15 @@
+version: "3"
+
+services:
+  flask_app:
+    build: .
+    ports:
+      - "5000:5000"
+    # Mount the Flask package so code changes apply without rebuild
+    volumes:
+      - ./hotel_backend:/app
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-change-me-use-env-or-dotenv}
+      AES_KEY: ${AES_KEY:-change-this-aes-key-32-bytes!!!!}
+      DATABASE_PATH: ${DATABASE_PATH:-/app/database.db}
+    working_dir: /app
