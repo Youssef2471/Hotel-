@@ -11,8 +11,17 @@ from routes.rooms import rooms_bp
 from routes.bookings import bookings_bp
 from routes.payments import payments_bp
 
+
 app = Flask(__name__)
 CORS(app)  # allows Flutter to talk to Flask
+
+from prometheus_client import Counter, generate_latest
+
+REQUEST_COUNT = Counter('request_count', 'Total Requests')
+
+@app.route('/metrics')
+def metrics():
+    return generate_latest()
 
 PrometheusMetrics(app)
 
@@ -43,3 +52,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=config.DEBUG)  # nosec B104
+

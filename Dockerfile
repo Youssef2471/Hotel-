@@ -12,4 +12,5 @@ COPY hotel_backend/ .
 
 EXPOSE 5000
 
+WORKDIR /app/hotel_backend
 CMD ["python", "app.py"]
