@@ -32,8 +32,10 @@ def init_db():
     ]:
         try:
             cursor.execute(f"ALTER TABLE users ADD COLUMN {col} {definition}")
-        except Exception:
-            pass
+        except sqlite3.OperationalError as exc:
+            # Ignore only the expected migration race/duplication case.
+            if "duplicate column name" not in str(exc).lower():
+                raise
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS rooms (
