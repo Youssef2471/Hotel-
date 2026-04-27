@@ -13,6 +13,9 @@ jobs:
     steps:
       # 1) Checkout repository
       - uses: actions/checkout@v4
+        with:
+          # Needed for history-aware secret scanning.
+          fetch-depth: 0
 
       # 2) Python toolchain
       - name: Set up Python
@@ -28,19 +31,47 @@ jobs:
       - name: Install security tooling
         run: pip install bandit pip-audit
 
-      # 5) Dependency / supply-chain scan (addresses vulnerable libraries; similar intent to OWASP DC or Safety)
+      # 5) Dependency / supply-chain scan (quick audit via Python advisories)
       - name: Dependency scanning
         run: pip-audit -r requirements.txt
 
-      # 6) Static analysis on the Flask codebase (hardcoded secrets, unsafe patterns, SQL issues)
+      # 6) Secret scanning with Gitleaks
+      - name: Secret scanning (Gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 7) OWASP Dependency-Check (deep CVE scan + HTML report artifact)
+      - name: OWASP Dependency-Check
+        run: |
+          mkdir -p dependency-check-data dependency-check-report
+          docker run --rm \
+            -v "${{ github.workspace }}:/src" \
+            -v "${{ github.workspace }}/dependency-check-data:/usr/share/dependency-check/data" \
+            owasp/dependency-check:latest \
+            --scan /src \
+            --project hotel_backend \
+            --out /src/dependency-check-report \
+            --format HTML \
+            --format JSON \
+            --failOnCVSS 7
+
+      - name: Upload OWASP report artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dependency-check-report
+          path: dependency-check-report/
+
+      # 8) Static analysis on the Flask codebase (hardcoded secrets, unsafe patterns, SQL issues)
       - name: Security scanning (Bandit)
         run: bandit -r hotel_backend -c pyproject.toml
 
-      # 7) Automated tests — must pass before image build
+      # 9) Automated tests — must pass before image build
       - name: Run tests
         run: pytest
 
-      # 8) Container build verification
+      # 10) Container build verification
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
